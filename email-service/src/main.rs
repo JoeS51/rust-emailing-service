@@ -24,7 +24,11 @@ async fn azure_creds_init() -> Result<()> {
          policy_key,
      )?;
 
-     client.send_message("Hello, world!", None).await?;
+     client.send_message("JOE MESSAGE FROM QUEUEU", None).await?;
+
+    let msg = client.receive_and_delete_message().await?;
+
+    println!("{msg}");
     
     Ok(())
 }
