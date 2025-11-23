@@ -5,16 +5,27 @@ use lettre::{
 };
 use dotenvy::dotenv;
 
-use azure_messaging_servicebus::ServiceBusClient;
-use azure_identity::DeveloperToolsCredential;
-use anyhow::Result;
+use azure_messaging_servicebus::prelude::*;
+use azure_core::Result;
+use std::sync::Arc;
 
 async fn azure_creds_init() -> Result<()> {
-    let credential = DeveloperToolsCredential::new(None)?;
-    let client = ServiceBusClient::builder()
-        .open("pracareer-joe.servicebus.windows.net", credential)
-        .await?;
+     let http_client: Arc<dyn azure_core::HttpClient> = Arc::new(reqwest::Client::new());
+     let service_bus_namespace = std::env::var("SERVICE_BUS_NAMESPACE").expect("SERVICE_BUS_NAMESPACE not set");
+     let queue_name = std::env::var("QUEUE_NAME").expect("QUEUE_NAME not set");
+     let policy_name = std::env::var("POLICY_NAME").expect("POLICY_NAME not set");
+     let policy_key = std::env::var("POLICY_KEY").expect("POLICY_KEY not set");
 
+     let client = QueueClient::new(
+         http_client,
+         service_bus_namespace,
+         queue_name,
+         policy_name,
+         policy_key,
+     )?;
+
+     client.send_message("Hello, world!", None).await?;
+    
     Ok(())
 }
 
@@ -49,9 +60,12 @@ fn send_email() {
     }
 }
 
-fn main() {
+#[tokio::main]
+async fn main() {
     dotenv().ok();
-    azure_creds_init();
+    azure_creds_init().await.unwrap_or_else(|e| {
+        eprintln!("Error initializing Azure credentials: {}", e);
+    });
 
     //println!("Sending email...");
     //
