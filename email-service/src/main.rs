@@ -5,6 +5,19 @@ use lettre::{
 };
 use dotenvy::dotenv;
 
+use azure_messaging_servicebus::ServiceBusClient;
+use azure_identity::DeveloperToolsCredential;
+use anyhow::Result;
+
+async fn azure_creds_init() -> Result<()> {
+    let credential = DeveloperToolsCredential::new(None)?;
+    let client = ServiceBusClient::builder()
+        .open("pracareer-joe.servicebus.windows.net", credential)
+        .await?;
+
+    Ok(())
+}
+
 fn create_mailer() -> SmtpTransport {
     let username = std::env::var("EMAIL_USERNAME").expect("EMAIL_USERNAME not set");
     let password = std::env::var("EMAIL_PASSWORD").expect("EMAIL_PASSWORD not set");
@@ -38,8 +51,9 @@ fn send_email() {
 
 fn main() {
     dotenv().ok();
+    azure_creds_init();
 
-    println!("Sending email...");
-
-    send_email();
+    //println!("Sending email...");
+    //
+    //send_email();
 }
