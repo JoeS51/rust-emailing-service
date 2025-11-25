@@ -8,6 +8,16 @@ use dotenvy::dotenv;
 use azure_messaging_servicebus::prelude::*;
 use azure_core::Result;
 use std::sync::Arc;
+use std::fs;
+use serde::{Serialize, Deserialize};
+
+#[derive(Serialize, Deserialize, Debug)]
+struct EmailJob {
+    from: String,
+    to: String,
+    subject: String,
+    body: String,
+}
 
 fn create_mailer() -> SmtpTransport {
     let username = std::env::var("EMAIL_USERNAME").expect("EMAIL_USERNAME not set");
@@ -22,12 +32,12 @@ fn create_mailer() -> SmtpTransport {
         .build()
 }
 
-fn send_email(body: String) {
+fn send_email(from: &str, to: &str, subject: &str, body: &str) {
     let email = Message::builder()
-        .from("joesluis51@gmail.com".parse::<Mailbox>().unwrap())
-        .to("joesluis51@gmail.com".parse::<Mailbox>().unwrap())
-        .subject("email with rust")
-        .body(body)
+        .from(from.parse::<Mailbox>().unwrap())
+        .to(to.parse::<Mailbox>().unwrap())
+        .subject(subject)
+        .body(body.to_string())
         .unwrap();
 
     let mailer = create_mailer();
@@ -55,7 +65,10 @@ async fn get_message_and_send_email() -> Result<()> {
          policy_key,
      )?;
 
-     client.send_message("JOE MESSAGE FROM QUEUEU", None).await?;
+    let json_str = fs::read_to_string("body.json")?;
+
+    // To send messages to the queue
+    //client.send_message(&json_str, None).await?;
 
     let msg = client.receive_and_delete_message().await?;
 
@@ -65,7 +78,16 @@ async fn get_message_and_send_email() -> Result<()> {
 
     println!("Sending email...");
 
-    send_email(msg);
+    let contents: EmailJob = serde_json::from_str(&msg)?;
+    
+    println!("Parsed: {:?}", contents);
+
+    send_email(
+        &contents.from,
+        &contents.to,
+        &contents.subject,
+        &contents.body,
+    );
     
     Ok(())
 }

@@ -299,6 +299,8 @@ dependencies = [
  "dotenvy",
  "lettre",
  "reqwest",
+ "serde",
+ "serde_json",
  "tokio",
 ]
 
